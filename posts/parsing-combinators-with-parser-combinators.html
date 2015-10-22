@@ -1,0 +1,498 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1,user-scalable=no">
+        <title>Parsing the untyped $\lambda$-calculus with Parsec</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/github.css" />
+        <link rel="stylesheet" type="text/css" href="../css/old.css" />
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+          ga('create', 'UA-60895827-1', 'auto');
+          ga('send', 'pageview');
+
+        </script>
+        <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script src="../js/mathjaxConfig.js"></script>
+        
+        
+        
+        
+        
+        
+        <link rel="apple-touch-icon-precomposed" sizes="57x57" href="../images/favicon/apple-touch-icon-57x57.png" />
+<link rel="apple-touch-icon-precomposed" sizes="114x114" href="../images/favicon/apple-touch-icon-114x114.png" />
+<link rel="apple-touch-icon-precomposed" sizes="72x72" href="../images/favicon/apple-touch-icon-72x72.png" />
+<link rel="apple-touch-icon-precomposed" sizes="144x144" href="../images/favicon/apple-touch-icon-144x144.png" />
+<link rel="apple-touch-icon-precomposed" sizes="120x120" href="../images/favicon/apple-touch-icon-120x120.png" />
+<link rel="apple-touch-icon-precomposed" sizes="152x152" href="../images/favicon/apple-touch-icon-152x152.png" />
+<link rel="icon" type="image/png" href="../images/favicon/favicon-32x32.png" sizes="32x32" />
+<link rel="icon" type="image/png" href="../images/favicon/favicon-16x16.png" sizes="16x16" />
+<meta name="application-name" content="&nbsp;" />
+<meta name="msapplication-TileColor" content="#FFFFFF" />
+<meta name="msapplication-TileImage" content="/images/favicon/mstile-144x144.png" />
+
+    </head>
+    <body>
+
+        <header>
+            <div class="title">Matt Wetmore</div>
+            <div class="navi">
+                <a href="../">Home</a>
+                <a href="../about.html">About</a>
+                <a href="../cv.pdf">CV</a>
+                <a href="../projects.html">Projects</a>
+                <a href="../archive.html">Archive</a>
+            </div>
+            <a href="../where.html"><div class="bird"></div></a>
+        </header>
+
+        <div class="title">
+            <h1>Parsing the untyped $\lambda$-calculus with Parsec</h1>
+        
+            
+            <h1 class="subtitle">Or, "Parsing combinators with parser combinators"</h1>
+            
+        </div>
+
+        
+        <div class="info">
+            Posted on June 24, 2015
+            
+        </div>
+        
+
+        <div id="content">
+            <div class="collection-seek">
+
+
+
+</div>
+
+<div class="main-text">
+    <p>The book <em>Types and Programming Languages</em> (briefly, TAPL) is a popular introduction to type systems and programming language theory. Starting with the untyped \(\lambda\)-calculus, TAPL walks the reader through the construction of a simple expression-based language, focusing on type-checking and evaluation. One of the first exercises is an evaluator for the untyped \(\lambda\)-calculus, in OCaml.</p>
+
+<p>I’ve been working through the book in Haskell, which involves a pretty straightforward transcription from OCaml to Haskell. While the book gives an implementation of the evaluator, it doesn’t include any discussion of parsing \(\lambda\)-expressions such as \(\lambda x.\lambda y.x\;y\). Instead, to play around with the evaluator you must pass it an encoding of the term. That’s a real hassle, so let’s build a parser for such expressions.</p>
+
+<p>The heavy lifting for this parser comes courtesy of the Haskell library <a href="https://hackage.haskell.org/package/parsec" title>Parsec</a>. Parsec provides a monadic parsing system, which along with <a href="https://en.wikibooks.org/wiki/Haskell/do_notation" title>do notation</a> provides a nice DSL for parsing. First, let’s import what we need:</p>
+
+<div class="highlight"><pre><span class="kr">import</span> <span class="nn">Text.Parsec</span>
+<span class="kr">import</span> <span class="nn">Text.Parsec.Combinator</span> <span class="p">(</span><span class="nf">between</span><span class="p">,</span> <span class="nf">sepBy1</span><span class="p">,</span> <span class="nf">chainr1</span><span class="p">)</span>
+<span class="kr">import</span> <span class="nn">Data.List</span> <span class="p">(</span><span class="nf">elemIndex</span><span class="p">)</span>
+</pre></div>
+
+
+<p>In TAPL, the format for encoding \(\lambda\)-terms is prescribed. The usual grammar for \(\lambda\)-terms is</p>
+
+<p>\[
+M,N ::= x \,|\, \lambda x.M \,|\, M\;N
+\]</p>
+
+<p>which is to say, a \(\lambda\)-term is either a <em>variable</em> \(x\), a <em>\(\lambda\)-abstraction</em> \(\lambda x.M\), or an <em>application</em> of two terms \(M\;N\). In Haskell, the associated data type is given by:</p>
+
+<div class="highlight"><pre><span class="kr">data</span> <span class="kt">Term</span> <span class="ow">=</span>
+    <span class="kt">TmVar</span> <span class="kt">Info</span> <span class="kt">Int</span> <span class="kt">Int</span>
+  <span class="o">|</span> <span class="kt">TmAbs</span> <span class="kt">Info</span> <span class="kt">String</span> <span class="kt">Term</span>
+  <span class="o">|</span> <span class="kt">TmApp</span> <span class="kt">Info</span> <span class="kt">Term</span> <span class="kt">Term</span>
+  <span class="kr">deriving</span> <span class="p">(</span><span class="kt">Show</span><span class="p">)</span>
+  
+<span class="kr">data</span> <span class="kt">Info</span> <span class="ow">=</span> <span class="kt">Info</span> <span class="p">{</span> <span class="n">row</span> <span class="ow">::</span> <span class="kt">Int</span><span class="p">,</span> <span class="n">col</span> <span class="ow">::</span> <span class="kt">Int</span> <span class="p">}</span> <span class="kr">deriving</span> <span class="p">(</span><span class="kt">Show</span><span class="p">)</span>
+</pre></div>
+
+
+<p><code class="highlight"><span class="kt">Info</span>
+</code> is used to hold row and column information about the terms as they are parsed, in case such information is necessary for error messages later.</p>
+
+<p>The data constructors <code class="highlight"><span class="kt">TmAbs</span>
+</code> and <code class="highlight"><span class="kt">TmApp</span>
+</code> take predictable arguments - for an abstraction we track the name of the variable as a string, and an application stores the two terms involved. But why are there numbers stored in each <code class="highlight"><span class="kt">TmVar</span>
+</code>?</p>
+
+<div class="sidenote"><ol start="1"><li id="sn1"><div><p><em>Caveat:</em> The Wikipedia article starts numbering at 1, but TAPL (and this post, as a result) start numbering at 0. So \(\lambda x.x\) is \(\lambda.1\) in the Wikipedia article, but \(\lambda.0\) for our purposes. Thanks <a href="https://news.ycombinator.com/item?id=9781815" title>platz</a> for pointing this out.</p></div></li></ol></div><p>The first number is the <em><a href="https://en.wikipedia.org/wiki/De_Bruijn_index" title>De Bruijn index</a></em><a id="fnref1" class="fnref" href="#fn1"><sup>1</sup></a>, which cleverly encodes the variables in a nameless representation by storing &ldquo;how far&rdquo; the variable is from its binding \(\lambda\). The number represents how many other \(\lambda\)-abstractions (which can be simply called &ldquo;binders&rdquo;) there are in the scope of the variable. So, for example, the identity term \(\lambda x.x\) can be written as \(\lambda.0\) and our friend \(\lambda x.\lambda y.x\;y\) from before becomes \(\lambda.\lambda.1\;0\). This nameless representation does away with any issues caused by name collisions; more information about its advantages can be found in the link above.</p>
+
+<p>In order to calculate a variable’s de Bruijn index, we will need to keep track of a list of bound variables. Hence we will use the following type alias:</p>
+
+<div class="highlight"><pre><span class="kr">type</span> <span class="kt">BoundContext</span> <span class="ow">=</span> <span class="p">[</span><span class="kt">String</span><span class="p">]</span>
+</pre></div>
+
+
+<p>The second number in the <code class="highlight"><span class="kt">TmVar</span>
+</code> data constructor stores how many bound variables are in the variable’s scope, and is used as a sanity check in TAPL’s evaluator.</p>
+
+<h2 id="munging-info">Munging info</h2>
+
+<p>Before we start writing the parser, we’ll need a convenience function which will produce the <code class="highlight"><span class="kt">Info</span>
+</code> we need during parsing. Parsec tracks its position within the source as it parses with the <code class="highlight"><span class="kt">SourcePos</span>
+</code> type. We will use this to grab the row and column position:</p>
+
+<div class="highlight"><pre><span class="nf">infoFrom</span> <span class="ow">::</span> <span class="kt">SourcePos</span> <span class="ow">-&gt;</span> <span class="kt">Info</span>
+<span class="nf">infoFrom</span> <span class="n">pos</span> <span class="ow">=</span> <span class="kt">Info</span> <span class="p">(</span><span class="n">sourceLine</span> <span class="n">pos</span><span class="p">)</span> <span class="p">(</span><span class="n">sourceColumn</span> <span class="n">pos</span><span class="p">)</span>
+</pre></div>
+
+
+<p>In order to use this function, we of course need a <code class="highlight"><span class="kt">SourcePos</span>
+</code> to call it on. To get one of these, we first need to know how building parsers in Parsec works.</p>
+
+<h2 id="parser-combinators">Parser combinators</h2>
+
+<p>Parsec parsers are built up by composing a variety of <em>parser combinators</em>. A <em>combinator</em> is technically a function with no free variables, i.e. one depending only on its arguments; some common examples are the indentity \(I \equiv \lambda x.x\), or the constant function \(K \equiv \lambda x.\lambda y. x\). In the world of functional programming, however, our mental model of a combinator is not necessarily this definition - instead, we think of combinators as simple, self-contained building blocks with which we can construct more complicated functions. For example, the <a href="https://en.wikipedia.org/wiki/SKI_combinator_calculus" title>&ldquo;SKI combinator calculus&rdquo;</a> is a system which only allows us to work with the combinators \(K\) and \(I\) above, as well as the substitution combinator \(S \equiv \lambda x.\lambda y.\lambda z.(x\;z)\;(y\;z)\). We can apply them to each other; for example, \(I S = S\). From these simple combinators we can build much more complex ones; an interesting example is \(S I I\), which takes some input and applies it to itself. In fact, any expression in the untyped \(\lambda\)-calculus can be written as a combination of the \(S\),\(K\), and \(I\) combinators!</p>
+
+<p>This same spirit of complexity via composition drives Parsec. The library provides some simple parsers, like <code>letter</code>, which matches a single letter, or <code>char c</code>, which matches whatever character <code>c</code> is. Parsers have the type <code class="highlight"><span class="kt">Parsec</span> <span class="n">s</span> <span class="n">u</span> <span class="n">a</span>
+</code>, which we can break down like so:</p>
+
+<ul>
+<li><code>s</code> is the type of the input, such as <code class="highlight"><span class="kt">String</span>
+</code></li>
+<li><code>u</code> is the type of the &ldquo;user state&rdquo;, i.e. whatever data you want to carry around as you parse</li>
+<li><code>a</code> is the type of the parser’s output</li>
+</ul>
+
+<p>In our case, we will be parsing <code class="highlight"><span class="kt">String</span>
+</code>s into <code class="highlight"><span class="kt">Term</span>
+</code>s, and we will need to carry around a context storing which \(\lambda\)-abstractions we’ve seen in order to convert to de Bruijn notation, which will be a list of <code class="highlight"><span class="kt">String</span>
+</code>s as we mentioned earlier. So our final parser will have type <code class="highlight"><span class="kt">Parsec</span> <span class="kt">String</span> <span class="kt">BoundContext</span> <span class="kt">Term</span>
+</code>. That’s a bit of a mouthful, so lets use a type alias:</p>
+
+<div class="highlight"><pre><span class="kr">type</span> <span class="kt">LCParser</span> <span class="ow">=</span> <span class="kt">Parsec</span> <span class="kt">String</span> <span class="kt">BoundContext</span> <span class="kt">Term</span>
+</pre></div>
+
+
+<p>These basic parsers can be combined into more complex beasts with a number of provided functions. One of the usual suspects is the infix function <code>&lt;|&gt;</code> (which you may recognize from the <a href="https://hackage.haskell.org/package/base-4.8.0.0/docs/Control-%20Applicative.html#g:2" title><code>Alternative</code> typeclass</a>). If <code>p</code> and <code>q</code> are two parsers, then <code>p &lt;|&gt; q</code> is a parser which tries parsing with <code>p</code>, and if that fails, parsing with <code>q</code>. So <code>letter &lt;|&gt; char '\''</code> matches either a letter, or a &ldquo;prime&rdquo; ’.</p>
+
+<p>In fact, this is part of the first building block we will need. We will allow variables which are strings consisting of letters or primes, such as &ldquo;x&rdquo;, &ldquo;y&rdquo;, &ldquo;x’&rdquo;, or &ldquo;lol&rdquo;. The parser for this is</p>
+
+<div class="highlight"><pre><span class="nf">parseVarName</span> <span class="ow">::</span> <span class="kt">Parsec</span> <span class="kt">String</span> <span class="n">u</span> <span class="kt">String</span>
+<span class="nf">parseVarName</span> <span class="ow">=</span> <span class="n">many1</span> <span class="o">$</span> <span class="n">letter</span> <span class="o">&lt;|&gt;</span> <span class="n">char</span> <span class="sc">'</span><span class="se">\'</span><span class="sc">'</span>
+</pre></div>
+
+
+<p>The stranger here is <code>many1</code>, which is a rather predictable function. Given a parser <code>p</code>, <code>many1 p</code> will match 1 or more of the things <code>p</code> parses. In our case, this means 1 or more letters or primes - i.e. a string like described above. Note that the type of the state is left as a variable.</p>
+
+<p>In order to use a parser, we need to run it. Let’s give ourselves a helper function for running the parsers we make as we go:</p>
+
+<div class="highlight"><pre><span class="nf">parseWith</span> <span class="ow">::</span> <span class="kt">Parsec</span> <span class="kt">String</span> <span class="p">[</span><span class="n">u</span><span class="p">]</span> <span class="n">a</span> <span class="ow">-&gt;</span> <span class="kt">String</span> <span class="ow">-&gt;</span> <span class="kt">Either</span> <span class="kt">ParseError</span> <span class="n">a</span>
+<span class="nf">parseWith</span> <span class="n">p</span> <span class="ow">=</span> <span class="n">runParser</span> <span class="n">p</span> <span class="kt">[]</span> <span class="s">&quot;untyped lambda-calculus&quot;</span>
+</pre></div>
+
+
+<p>As the type signature suggests, <code>parseWith</code> takes a parser and a string and either gives you an parsing error, or whatever the output of the parser is. The empty list we hand it will be used later as the initial state for our parser (an empty context). The string &ldquo;untyped lambda-calculus&rdquo; is used as the source name when Parsec prints errors.</p>
+
+<div class="sidenote"><ol start="2"><li id="sn2"><div><p>The result of a call to <code>parseWith</code> is <code class="highlight"><span class="kt">Either</span> <span class="kt">ParseError</span> <span class="n">a</span>
+</code>. A successful parsing attempt will return <code class="highlight"><span class="kt">Right</span> <span class="n">x</span>
+</code>, where <code>x</code> is whatever was parsed. If there is a parsing error, we get a <code class="highlight"><span class="kt">Left</span> <span class="n">err</span>
+</code> instead, where <code>err</code> is a <code class="highlight"><span class="kt">ParseError</span>
+</code>. An explanation of what <code class="highlight"><span class="kt">Left</span>
+</code> and <code class="highlight"><span class="kt">Right</span>
+</code> are can be found <a href="https://hackage.haskell.org/package/base-4.7.0.0/docs/Data-Either.html" title>here</a>.</p></div></li></ol></div><p>Here are a few examples of using the variable name parser. Notice what it accepts and rejects<a id="fnref2" class="fnref" href="#fn2"><sup>2</sup></a>:</p>
+
+<div class="highlight"><pre><span class="nf">parseWith</span> <span class="n">letter</span> <span class="s">&quot;loasdfl&quot;</span>
+<span class="nf">parseWith</span> <span class="n">parseVarName</span> <span class="s">&quot;4x'&quot;</span>
+<span class="nf">parseWith</span> <span class="n">parseVarName</span> <span class="s">&quot;x'&quot;</span>
+<span class="nf">parseWith</span> <span class="n">parseVarName</span> <span class="s">&quot;y 5&quot;</span>
+</pre></div>
+
+
+<pre class="code-output"><div>Code output:</div><code>Right 'l'
+
+Left &quot;untyped lambda-calculus&quot; (line 1, column 1):
+unexpected &quot;4&quot;
+expecting letter or &quot;'&quot;
+
+Right &quot;x'&quot;
+
+Right &quot;y&quot;</code></pre>
+
+<p>Notice that when the parser hits an invalid character right off the bat, it fails, because we wanted 1 or more characters. But if it has some valid characters and hits an invalid one, it stops parsing and returns the good stuff. Then it can continue trying another parser on the invalid part in more complex parsers.</p>
+
+<h2 id="monadic-parsing">Monadic parsing</h2>
+
+<p>The type <code class="highlight"><span class="kt">Parsec</span> <span class="n">s</span> <span class="n">u</span>
+</code>, with the <code>a</code> dropped, has kind <code>* -&gt; *</code>, i.e. it is a type constructor, like <code class="highlight"><span class="kt">Maybe</span>
+</code> or <code class="highlight"><span class="kt">Either</span> <span class="n">a</span>
+</code>. Fixing a type for the input and the user state, <code class="highlight"><span class="kt">Parsec</span> <span class="n">s</span> <span class="n">u</span>
+</code> is a monad. Recall that to make a monad out of a type constructor <code>m</code>, one must provide implementations of functions <code class="highlight"><span class="nf">return</span> <span class="ow">::</span> <span class="n">a</span> <span class="ow">-&gt;</span> <span class="n">m</span> <span class="n">a</span>
+</code> and <code class="highlight"><span class="p">(</span><span class="o">&gt;&gt;=</span><span class="p">)</span> <span class="ow">::</span> <span class="n">m</span> <span class="n">a</span> <span class="ow">-&gt;</span> <span class="p">(</span><span class="n">a</span> <span class="ow">-&gt;</span> <span class="n">m</span> <span class="n">b</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="n">m</span> <span class="n">b</span>
+</code>. For Parsec parsers, these functions work like so:</p>
+
+<h3 id="return"><code>return</code></h3>
+
+<p><code>return x</code> creates a parser which reads no input, and outputs <code>x</code>. For example:</p>
+
+<div class="highlight"><pre><span class="nf">parseWith</span> <span class="p">(</span><span class="n">return</span> <span class="s">&quot;output1&quot;</span><span class="p">)</span> <span class="s">&quot;&quot;</span>
+<span class="nf">parseWith</span> <span class="p">(</span><span class="n">return</span> <span class="s">&quot;output2&quot;</span><span class="p">)</span> <span class="s">&quot;This is not read.&quot;</span>
+</pre></div>
+
+
+<pre class="code-output"><div>Code output:</div><code>Right &quot;output1&quot;
+
+Right &quot;output2&quot;</code></pre>
+
+<h3 id="bind-i.e.">Bind, i.e. <code>(&gt;&gt;=)</code></h3>
+
+<p><code>p &gt;&gt;= f</code> runs <code>p</code>, then passes the output of parsing with <code>p</code> to <code>f</code>. Recall the type signature for <code>(&gt;&gt;=)</code>: in this case, <code class="highlight"><span class="kt">Parsec</span> <span class="n">s</span> <span class="n">u</span> <span class="n">a</span> <span class="ow">-&gt;</span> <span class="p">(</span><span class="n">a</span> <span class="ow">-&gt;</span> <span class="kt">Parsec</span> <span class="n">s</span> <span class="n">u</span> <span class="n">b</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="kt">Parsec</span> <span class="n">s</span> <span class="n">u</span> <span class="n">b</span>
+</code>. So passing the output of parsing with <code>p</code> to <code>f</code> gives us a parser, and we run it on the remaining input. Here is a particularly contrived example:</p>
+
+<div class="highlight"><pre><span class="nf">announceLetter</span> <span class="n">c</span> <span class="ow">=</span> <span class="n">return</span> <span class="o">$</span> <span class="s">&quot;The first letter is &quot;</span> <span class="o">++</span> <span class="p">[</span><span class="n">c</span><span class="p">]</span>
+<span class="nf">parseWith</span> <span class="p">(</span><span class="n">letter</span> <span class="o">&gt;&gt;=</span> <span class="n">announceLetter</span><span class="p">)</span> <span class="s">&quot;abc&quot;</span>
+</pre></div>
+
+
+<pre class="code-output"><div>Code output:</div><code>Right &quot;The first letter is a&quot;</code></pre>
+
+<p>It’s worth looking at what <code class="highlight"><span class="p">(</span><span class="o">&gt;&gt;</span><span class="p">)</span>
+</code> does as well, even though it can be derived from <code>(&gt;&gt;=)</code>. <code>p &gt;&gt; q</code> is a parser which runs <code>p</code> on the input, discards the result, then runs <code>q</code> on the remaining input. So, for example:</p>
+
+<div class="highlight"><pre><span class="nf">parseWith</span> <span class="p">(</span><span class="n">letter</span> <span class="o">&gt;&gt;</span> <span class="n">digit</span><span class="p">)</span> <span class="s">&quot;r5&quot;</span>
+<span class="nf">parseWith</span> <span class="p">(</span><span class="n">parseVarName</span> <span class="o">&gt;&gt;</span> <span class="n">many1</span> <span class="n">digit</span><span class="p">)</span> <span class="s">&quot;lol46&quot;</span>
+</pre></div>
+
+
+<pre class="code-output"><div>Code output:</div><code>Right '5'
+Right &quot;46&quot;</code></pre>
+
+<p>This is useful when we want to parse pieces of the input which we do not need to store; for example, if we are parsing IP addresses, there is no need to store the dots.</p>
+
+<p>A big advantage of this monad instance is that we can use do notation. For example, here is how we might parse an IP address:</p>
+
+<div class="highlight"><pre><span class="kr">data</span> <span class="kt">IP</span> <span class="ow">=</span> <span class="kt">IP</span> <span class="kt">Int</span> <span class="kt">Int</span> <span class="kt">Int</span> <span class="kt">Int</span> <span class="kr">deriving</span> <span class="p">(</span><span class="kt">Show</span><span class="p">)</span>
+
+<span class="nf">number</span> <span class="ow">::</span> <span class="kt">Parsec</span> <span class="kt">String</span> <span class="n">u</span> <span class="kt">Int</span>
+<span class="nf">number</span> <span class="ow">=</span> <span class="n">many1</span> <span class="n">digit</span> <span class="o">&gt;&gt;=</span> <span class="p">(</span><span class="n">return</span> <span class="o">.</span> <span class="n">read</span><span class="p">)</span>
+
+<span class="nf">dot</span> <span class="ow">=</span> <span class="n">char</span> <span class="sc">'.'</span>
+
+<span class="nf">parseIP</span> <span class="ow">=</span> <span class="kr">do</span>
+  <span class="n">p1</span> <span class="ow">&lt;-</span> <span class="n">number</span>
+  <span class="n">dot</span>
+  <span class="n">p2</span> <span class="ow">&lt;-</span> <span class="n">number</span>
+  <span class="n">dot</span>
+  <span class="n">p3</span> <span class="ow">&lt;-</span> <span class="n">number</span>
+  <span class="n">dot</span>
+  <span class="n">p4</span> <span class="ow">&lt;-</span> <span class="n">number</span>
+  <span class="n">return</span> <span class="o">$</span> <span class="kt">IP</span> <span class="n">p1</span> <span class="n">p2</span> <span class="n">p3</span> <span class="n">p4</span>
+  
+<span class="nf">parseWith</span> <span class="n">parseIP</span> <span class="s">&quot;192.168.0.1&quot;</span>
+<span class="nf">parseWith</span> <span class="n">parseIP</span> <span class="s">&quot;192.168.0&quot;</span>
+</pre></div>
+
+
+<pre class="code-output"><div>Code output:</div><code>Right (IP 192 168 0 1)
+
+Left &quot;untyped lambda-calculus&quot; (line 1, column 10):
+unexpected end of input
+expecting digit or &quot;.&quot;</code></pre>
+
+<h2 id="parsing-terms">Parsing terms</h2>
+
+<p>Let’s begin building the parsers for the different types of terms. The abstraction parser is the most involved, and lays the groundwork for the stateful part of the parsing, so we will start with that.</p>
+
+<div class="highlight"><pre><span class="nf">parseAbs</span> <span class="ow">::</span> <span class="kt">LCParser</span> <span class="ow">-&gt;</span> <span class="kt">LCParser</span>
+<span class="nf">parseAbs</span> <span class="n">termParser</span> <span class="ow">=</span> <span class="kr">do</span>
+  <span class="n">char</span> <span class="sc">'</span><span class="se">\\</span><span class="sc">'</span>
+  <span class="n">v</span> <span class="ow">&lt;-</span> <span class="n">parseVarName</span>
+  <span class="n">modifyState</span> <span class="p">(</span><span class="n">v</span> <span class="kt">:</span><span class="p">)</span>
+  <span class="n">char</span> <span class="sc">'.'</span>
+  <span class="n">term</span> <span class="ow">&lt;-</span> <span class="n">termParser</span>
+  <span class="n">modifyState</span> <span class="n">tail</span>
+  <span class="n">pos</span> <span class="ow">&lt;-</span> <span class="n">getPosition</span>
+  <span class="n">return</span> <span class="o">$</span> <span class="kt">TmAbs</span> <span class="p">(</span><span class="n">infoFrom</span> <span class="n">pos</span><span class="p">)</span> <span class="n">v</span> <span class="n">term</span>
+</pre></div>
+
+
+<div class="sidenote"><ol start="3"><li id="sn3"><div><p>We take the term parser in as an argument to <code class="highlight"><span class="nf">parseAbs</span>
+</code> so that we can develop the parser step-by-step without IHaskell complaining that the term parser is undefined. The abstraction parser depends on the term parser and vice versa. If this was just in one file, then we could refer to the term parser directly.</p></div></li></ol></div><p>First, we match a backslash, which begins the \(\lambda\)-abstraction (the backslash syntax is inspired by Haskell). Next, we parse the subsequent variable name and store it. As we mentioned before, the state we carry around is a list of bound variables, so after we see the variable we push it onto the front of the list using <code>modifyState</code>, which applies the given function to the state. Next we pass by the dot after the variable, and parse the term in the body of the \(\lambda\)-abstraction. Note that we haven’t defined a parser for general terms yet; we can define it once we’ve laid out how to parse each type of term<a id="fnref3" class="fnref" href="#fn3"><sup>3</sup></a>.</p>
+
+<p>After parsing the body term, we pop abstraction’s variable off of the context list, since we are leaving the scope of the abstraction. Having completed the parsing, we grab the <code class="highlight"><span class="kt">SourcePos</span>
+</code> using <code>getPosition</code> and return a <code class="highlight"><span class="kt">TmAbs</span>
+</code> filled in with all the necessary data we’ve parsed.</p>
+
+<p>Now let’s move on to parsing variables. When we parse a variable, we need to return a <code class="highlight"><span class="kt">TmVar</span>
+</code> with the correct de Bruijn index. This index is the position of the variable in the context list, which is the state we store while parsing. If the variable name isn’t found in the list, then it hasn’t been bound anywhere and is free. This provides a small challenge though - what number should we use for the index of a free variable? In TAPL, the author defines a function for printing elements of <code class="highlight"><span class="kt">Term</span>
+</code> as normal lambda expressions, but this function has no support for free variables (printing an error in their presence) so we will also elide the challenge of indexing and naming free variables by only parsing terms with no free variables (i.e., combinators). Hence the alternate title for the post: &ldquo;Parsing combinators with parser combinators&rdquo;.</p>
+
+<p>Below, we see an implementation for the variable parser:</p>
+
+<div class="highlight"><pre><span class="nf">parseVar</span> <span class="ow">::</span> <span class="kt">LCParser</span>
+<span class="nf">parseVar</span> <span class="ow">=</span> <span class="kr">do</span>
+  <span class="n">v</span> <span class="ow">&lt;-</span> <span class="n">parseVarName</span>
+  <span class="n">list</span> <span class="ow">&lt;-</span> <span class="n">getState</span>
+  <span class="n">findVar</span> <span class="n">v</span> <span class="n">list</span>
+  
+<span class="nf">findVar</span> <span class="ow">::</span> <span class="kt">String</span> <span class="ow">-&gt;</span> <span class="kt">BoundContext</span> <span class="ow">-&gt;</span> <span class="kt">LCParser</span>
+<span class="nf">findVar</span> <span class="n">v</span> <span class="n">list</span> <span class="ow">=</span> <span class="kr">case</span> <span class="n">elemIndex</span> <span class="n">v</span> <span class="n">list</span> <span class="kr">of</span>
+  <span class="kt">Nothing</span> <span class="ow">-&gt;</span> <span class="n">fail</span> <span class="o">$</span> <span class="s">&quot;The variable &quot;</span> <span class="o">++</span> <span class="n">v</span> <span class="o">++</span> <span class="s">&quot; has not been bound&quot;</span>
+  <span class="kt">Just</span> <span class="n">n</span>  <span class="ow">-&gt;</span> <span class="kr">do</span>
+    <span class="n">pos</span> <span class="ow">&lt;-</span> <span class="n">getPosition</span>
+    <span class="n">return</span> <span class="o">$</span> <span class="kt">TmVar</span> <span class="p">(</span><span class="n">infoFrom</span> <span class="n">pos</span><span class="p">)</span> <span class="n">n</span> <span class="p">(</span><span class="n">length</span> <span class="n">list</span><span class="p">)</span>
+</pre></div>
+
+
+<p>It works as we’ve discussed: first, we parse a variable name, then grab the <code class="highlight"><span class="kt">BoundContext</span>
+</code> list from the parser state. The <code>findVar</code> function takes the variable name and list of bound variables, and returns a <code class="highlight"><span class="kt">TmVar</span>
+</code> with the appropriate index when it can, failing otherwise.</p>
+
+<p>Finally, we need a parser which can handle applications. Now, ideally, once we had our application parser <code>parseApp</code>, we would be able to say something like:</p>
+
+<div class="highlight"><pre><span class="nf">parseTerm</span> <span class="ow">=</span> <span class="n">parseApp</span> <span class="o">&lt;|&gt;</span> <span class="n">parseAbs</span> <span class="o">&lt;|&gt;</span> <span class="n">parseVar</span>
+</pre></div>
+
+
+<p>However, this would lead to an infinite loop: the <code>parseApp</code> function would make a call to <code>parseTerm</code> for each space-separated term there is in the application. Moreover, <code>parseApp</code>must show up before <code>parseAbs</code> in the definition of <code>parseTerm</code>, because otherwise in a case like &ldquo;\(\lambda x.x \; \lambda y.y\)&rdquo; the abstraction parser would consume the first abstraction, which is awfully short-sighted because then the parser doesn’t see the entire terms as an application. But this means that when <code>parseApp</code> makes its call to <code>parseTerm</code>, it will just repeatedly call <code>parseApp</code> over and over again as that is the first parser it tries when running <code>parseTerm</code>.</p>
+
+<p>We can fix this by parsing application terms and non-application terms separately. When we want to parse an application, we run the non-application parser on a space-separated series of terms. Since application in the \(\lambda\)-calculus is left-associative, we can parse a string like &ldquo;M N O&rdquo;, where M, N, and O are terms, as &ldquo;(M N) O&rdquo;. Parsec includes a function which can help us in this situation:</p>
+
+<div class="highlight"><pre><span class="nf">chainl1</span> <span class="ow">::</span> <span class="kt">Parsec</span> <span class="n">s</span> <span class="n">u</span> <span class="n">a</span> <span class="ow">-&gt;</span> <span class="kt">Parsec</span> <span class="n">s</span> <span class="n">u</span> <span class="p">(</span><span class="n">a</span> <span class="ow">-&gt;</span> <span class="n">a</span> <span class="ow">-&gt;</span> <span class="n">a</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="kt">Parsec</span> <span class="n">s</span> <span class="n">u</span> <span class="n">a</span>
+</pre></div>
+
+
+<p>Essentially, <code>chainl1 p q</code> is a parser which matches 1 or more of whatever <code>p</code> parses, then performs a left fold with the function returned by the <code>q</code> parser. You can see it used in practice in the final part of our parser:</p>
+
+<div class="highlight"><pre><span class="nf">parens</span> <span class="ow">::</span> <span class="kt">Parsec</span> <span class="kt">String</span> <span class="n">u</span> <span class="n">a</span> <span class="ow">-&gt;</span> <span class="kt">Parsec</span> <span class="kt">String</span> <span class="n">u</span> <span class="n">a</span>
+<span class="nf">parens</span> <span class="ow">=</span> <span class="n">between</span> <span class="p">(</span><span class="n">char</span> <span class="sc">'('</span><span class="p">)</span> <span class="p">(</span><span class="n">char</span> <span class="sc">')'</span><span class="p">)</span>
+
+<span class="nf">parseNonApp</span> <span class="ow">::</span> <span class="kt">LCParser</span>
+<span class="nf">parseNonApp</span> <span class="ow">=</span>  <span class="n">parens</span> <span class="n">parseTerm</span>   <span class="c1">-- (M)</span>
+           <span class="o">&lt;|&gt;</span> <span class="n">parseAbs</span> <span class="n">parseTerm</span> <span class="c1">-- $\lambda$x.M</span>
+           <span class="o">&lt;|&gt;</span> <span class="n">parseVar</span>           <span class="c1">-- x</span>
+
+<span class="nf">parseTerm</span> <span class="ow">::</span> <span class="kt">LCParser</span>
+<span class="nf">parseTerm</span> <span class="ow">=</span> <span class="n">chainl1</span> <span class="n">parseNonApp</span> <span class="o">$</span> <span class="kr">do</span>
+  <span class="n">space</span>
+  <span class="n">pos</span> <span class="ow">&lt;-</span> <span class="n">getPosition</span>
+  <span class="n">return</span> <span class="o">$</span> <span class="kt">TmApp</span> <span class="p">(</span><span class="n">infoFrom</span> <span class="n">pos</span><span class="p">)</span>
+</pre></div>
+
+
+<p>Notice that we’ve also added a parser for terms within parentheses. We conclude by creating a <code class="highlight"><span class="nf">parse</span>
+</code> function:</p>
+
+<div class="highlight"><pre><span class="nf">parse</span> <span class="ow">::</span> <span class="kt">String</span> <span class="ow">-&gt;</span> <span class="kt">Either</span> <span class="kt">ParseError</span> <span class="kt">Term</span>
+<span class="nf">parse</span> <span class="ow">=</span> <span class="n">parseWith</span> <span class="n">parseTerm</span>
+</pre></div>
+
+
+<p>We can test it out:</p>
+
+<div class="highlight"><pre><span class="nf">parse</span> <span class="s">&quot;</span><span class="se">\\</span><span class="s">x.</span><span class="se">\\</span><span class="s">y.x y&quot;</span>
+</pre></div>
+
+
+<pre class="code-output"><div>Code output:</div><code>Right
+  (TmAbs (Info {row = 1, col = 10}) &quot;x&quot;
+    (TmAbs (Info {row = 1, col = 10}) &quot;y&quot;
+      (TmApp (Info {row = 1, col = 9})
+        (TmVar (Info {row = 1, col = 8}) 1 2)
+        (TmVar (Info {row = 1, col = 10}) 0 2)
+      )
+    )
+  )</code></pre>
+
+<p>Here is the function from TAPL for printing these terms in a nicer way:</p>
+
+<div class="highlight"><pre><span class="kr">data</span> <span class="kt">Binding</span> <span class="ow">=</span> <span class="kt">NameBind</span> <span class="kr">deriving</span> <span class="p">(</span><span class="kt">Show</span><span class="p">)</span>
+
+<span class="kr">type</span> <span class="kt">Context</span> <span class="ow">=</span> <span class="p">[(</span><span class="kt">String</span><span class="p">,</span> <span class="kt">Binding</span><span class="p">)]</span>
+
+<span class="nf">ctxLength</span> <span class="ow">::</span> <span class="kt">Context</span> <span class="ow">-&gt;</span> <span class="kt">Int</span>
+<span class="nf">ctxLength</span> <span class="ow">=</span> <span class="n">length</span>
+
+<span class="nf">indexToName</span> <span class="ow">::</span> <span class="kt">Context</span> <span class="ow">-&gt;</span> <span class="kt">Int</span> <span class="ow">-&gt;</span> <span class="kt">String</span>
+<span class="nf">indexToName</span> <span class="n">ctx</span> <span class="n">n</span> <span class="ow">=</span> <span class="n">fst</span> <span class="o">$</span> <span class="n">ctx</span> <span class="o">!!</span> <span class="n">n</span>
+
+<span class="nf">pickFreshName</span> <span class="ow">::</span> <span class="kt">Context</span> <span class="ow">-&gt;</span> <span class="kt">String</span> <span class="ow">-&gt;</span> <span class="p">(</span><span class="kt">Context</span><span class="p">,</span> <span class="kt">String</span><span class="p">)</span>
+<span class="nf">pickFreshName</span> <span class="n">ctx</span> <span class="n">x</span>
+  <span class="o">|</span> <span class="n">x</span> <span class="p">`</span><span class="n">elem</span><span class="p">`{</span><span class="o">.</span><span class="n">haskell</span><span class="p">}</span> <span class="p">(</span><span class="n">map</span> <span class="n">fst</span> <span class="n">ctx</span><span class="p">)</span> <span class="ow">=</span> <span class="n">pickFreshName</span> <span class="n">ctx</span> <span class="o">$</span> <span class="n">x</span> <span class="o">++</span> <span class="s">&quot;'&quot;</span>
+  <span class="o">|</span> <span class="n">otherwise</span> <span class="ow">=</span> <span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="kt">NameBind</span><span class="p">)</span> <span class="kt">:</span> <span class="n">ctx</span> <span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+
+<span class="nf">printTm</span> <span class="ow">::</span> <span class="kt">Context</span> <span class="ow">-&gt;</span> <span class="kt">Term</span> <span class="ow">-&gt;</span> <span class="kt">String</span>
+<span class="nf">printTm</span> <span class="n">ctx</span> <span class="n">t</span> <span class="ow">=</span> <span class="kr">case</span> <span class="n">t</span> <span class="kr">of</span>
+  <span class="kt">TmAbs</span> <span class="kr">_</span> <span class="n">x</span> <span class="n">t1</span> <span class="ow">-&gt;</span> <span class="kr">let</span>
+      <span class="p">(</span><span class="n">ctx'</span><span class="p">,</span> <span class="n">x'</span><span class="p">)</span> <span class="ow">=</span> <span class="n">pickFreshName</span> <span class="n">ctx</span> <span class="n">x</span>
+    <span class="kr">in</span> <span class="s">&quot;(</span><span class="se">\\</span><span class="s">&quot;</span> <span class="o">++</span> <span class="n">x'</span> <span class="o">++</span> <span class="s">&quot;.&quot;</span> <span class="o">++</span> <span class="p">(</span><span class="n">printTm</span> <span class="n">ctx'</span> <span class="n">t1</span><span class="p">)</span> <span class="o">++</span> <span class="s">&quot;)&quot;</span>
+  <span class="kt">TmApp</span> <span class="kr">_</span> <span class="n">t1</span> <span class="n">t2</span> <span class="ow">-&gt;</span>
+    <span class="s">&quot;(&quot;</span> <span class="o">++</span> <span class="p">(</span><span class="n">printTm</span> <span class="n">ctx</span> <span class="n">t1</span><span class="p">)</span> <span class="o">++</span> <span class="s">&quot; &quot;</span> <span class="o">++</span> <span class="n">printTm</span> <span class="n">ctx</span> <span class="n">t2</span> <span class="o">++</span> <span class="s">&quot;)&quot;</span>
+  <span class="kt">TmVar</span> <span class="kr">_</span> <span class="n">x</span> <span class="n">n</span> <span class="ow">-&gt;</span>
+    <span class="kr">if</span> <span class="n">ctxLength</span> <span class="n">ctx</span> <span class="o">==</span> <span class="n">n</span> <span class="kr">then</span>
+      <span class="n">indexToName</span> <span class="n">ctx</span> <span class="n">x</span>
+    <span class="kr">else</span>
+      <span class="s">&quot;[bad index]&quot;</span>
+</pre></div>
+
+
+<p>We can hook this up to our parser to see that it works:</p>
+
+<div class="highlight"><pre><span class="nf">printTerm</span> <span class="n">s</span> <span class="ow">=</span> <span class="kr">case</span> <span class="n">parse</span> <span class="n">s</span> <span class="kr">of</span>
+  <span class="kt">Left</span> <span class="n">err</span> <span class="ow">-&gt;</span> <span class="n">print</span> <span class="n">err</span>
+  <span class="kt">Right</span> <span class="n">t</span> <span class="ow">-&gt;</span> <span class="n">print</span> <span class="o">$</span> <span class="n">printTm</span> <span class="kt">[]</span> <span class="n">t</span>
+
+<span class="nf">printTerm</span> <span class="s">&quot;</span><span class="se">\\</span><span class="s">x.</span><span class="se">\\</span><span class="s">y.x y&quot;</span>
+<span class="nf">printTerm</span> <span class="s">&quot;</span><span class="se">\\</span><span class="s">f.(</span><span class="se">\\</span><span class="s">x.f (x x)) (</span><span class="se">\\</span><span class="s">x.f (x x))&quot;</span> <span class="c1">-- Y combinator</span>
+</pre></div>
+
+
+<pre class="code-output"><div>Code output:</div><code>&quot;(\\x.(\\y.(x y)))&quot;
+
+&quot;(\\f.((\\x.(f (x x))) (\\x.(f (x x)))))&quot;</code></pre>
+
+<h2 id="coda">Coda</h2>
+
+<div class="sidenote"><ol start="4"><li id="sn4"><div><p>Yacc is a <em>parser generator</em>, which means you write the grammar for the language you want to parse, and Yacc will spit out a parser for such a language in C or Java. Bison is the GNU version of Yacc, with a punning name in the GNU tradition.</p></div></li></ol></div><p>Once you get the hang of it, Parsec makes writing parsers pretty fun. The parser combinator approach seems near-fetishized in the Haskell community; one oft-cited reason for their greatness is the fact that parser combinators allow us to write parsers in the host language (Haskell in this case) without needing to write a specification in some other language (the Yacc/Bison approach<a id="fnref4" class="fnref" href="#fn4"><sup>4</sup></a>). Having little experience with parsers myself, I can’t attest to this particular strength, but the fact that I could knock out a small parser in one sitting having never worked with Parsec before is a testament to its ease of use.</p>
+
+<p>If you would like to see the parser implementation together in one place, instead of spread throughout this post, you can find it <a href="https://github.com/wetmore/TAPL-implementations/blob/master/untyped/Parser.hs" title>here</a>. The parser and evaluator can be found together in <a href="https://github.com/wetmore/TAPL-implementations/tree/master/untyped" title>this folder</a>.</p>
+<ol class="footnotes">
+<li id="fn1"><p><em>Caveat:</em> The Wikipedia article starts numbering at 1, but TAPL (and this post, as a result) start numbering at 0. So \(\lambda x.x\) is \(\lambda.1\) in the Wikipedia article, but \(\lambda.0\) for our purposes. Thanks <a href="https://news.ycombinator.com/item?id=9781815" title>platz</a> for pointing this out. <a href="#fnref1" class="fnref">↩</a></p></li>
+<li id="fn2"><p>The result of a call to <code>parseWith</code> is <code class="highlight"><span class="kt">Either</span> <span class="kt">ParseError</span> <span class="n">a</span>
+</code>. A successful parsing attempt will return <code class="highlight"><span class="kt">Right</span> <span class="n">x</span>
+</code>, where <code>x</code> is whatever was parsed. If there is a parsing error, we get a <code class="highlight"><span class="kt">Left</span> <span class="n">err</span>
+</code> instead, where <code>err</code> is a <code class="highlight"><span class="kt">ParseError</span>
+</code>. An explanation of what <code class="highlight"><span class="kt">Left</span>
+</code> and <code class="highlight"><span class="kt">Right</span>
+</code> are can be found <a href="https://hackage.haskell.org/package/base-4.7.0.0/docs/Data-Either.html" title>here</a>. <a href="#fnref2" class="fnref">↩</a></p></li>
+<li id="fn3"><p>We take the term parser in as an argument to <code class="highlight"><span class="nf">parseAbs</span>
+</code> so that we can develop the parser step-by-step without IHaskell complaining that the term parser is undefined. The abstraction parser depends on the term parser and vice versa. If this was just in one file, then we could refer to the term parser directly. <a href="#fnref3" class="fnref">↩</a></p></li>
+<li id="fn4"><p>Yacc is a <em>parser generator</em>, which means you write the grammar for the language you want to parse, and Yacc will spit out a parser for such a language in C or Java. Bison is the GNU version of Yacc, with a punning name in the GNU tradition. <a href="#fnref4" class="fnref">↩</a></p></li>
+</ol>
+</div>
+
+<div class="collection-seek">
+
+
+</div>
+        </div>
+
+        
+        <div class="comments">
+        <h2>Comments</h2>
+        <div id="disqus_thread"></div>
+        </div>
+        <script type="text/javascript">
+            /* * * CONFIGURATION VARIABLES * * */
+            var disqus_shortname = 'mattwetmore';
+            var disqus_identifier = '/posts/parsing-combinators-with-parser-combinators.html';
+            var disqus_url = 'http://mattwetmore.me' + '/posts/parsing-combinators-with-parser-combinators.html';
+            var disqus_title = 'Parsing the untyped $\lambda$-calculus with Parsec';
+            (function() {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+        
+
+        <div id="footer">
+            <span class="left"><a href="//github.com/wetmore/personal-site">Source</a>
+            on Github</span>
+
+            Site proudly generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+        <script src="../js/sidenote.js"></script>
+    </body>
+</html>

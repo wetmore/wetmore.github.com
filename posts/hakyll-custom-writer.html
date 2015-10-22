@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1,user-scalable=no">
+        <title>Using custom Pandoc writers with Hakyll</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/github.css" />
+        <link rel="stylesheet" type="text/css" href="../css/old.css" />
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+          ga('create', 'UA-60895827-1', 'auto');
+          ga('send', 'pageview');
+
+        </script>
+        <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script src="../js/mathjaxConfig.js"></script>
+        
+        
+        
+        
+        
+        
+        <link rel="apple-touch-icon-precomposed" sizes="57x57" href="../images/favicon/apple-touch-icon-57x57.png" />
+<link rel="apple-touch-icon-precomposed" sizes="114x114" href="../images/favicon/apple-touch-icon-114x114.png" />
+<link rel="apple-touch-icon-precomposed" sizes="72x72" href="../images/favicon/apple-touch-icon-72x72.png" />
+<link rel="apple-touch-icon-precomposed" sizes="144x144" href="../images/favicon/apple-touch-icon-144x144.png" />
+<link rel="apple-touch-icon-precomposed" sizes="120x120" href="../images/favicon/apple-touch-icon-120x120.png" />
+<link rel="apple-touch-icon-precomposed" sizes="152x152" href="../images/favicon/apple-touch-icon-152x152.png" />
+<link rel="icon" type="image/png" href="../images/favicon/favicon-32x32.png" sizes="32x32" />
+<link rel="icon" type="image/png" href="../images/favicon/favicon-16x16.png" sizes="16x16" />
+<meta name="application-name" content="&nbsp;" />
+<meta name="msapplication-TileColor" content="#FFFFFF" />
+<meta name="msapplication-TileImage" content="/images/favicon/mstile-144x144.png" />
+
+    </head>
+    <body>
+
+        <header>
+            <div class="title">Matt Wetmore</div>
+            <div class="navi">
+                <a href="../">Home</a>
+                <a href="../about.html">About</a>
+                <a href="../cv.pdf">CV</a>
+                <a href="../projects.html">Projects</a>
+                <a href="../archive.html">Archive</a>
+            </div>
+            <a href="../where.html"><div class="bird"></div></a>
+        </header>
+
+        <div class="title">
+            <h1>Using custom Pandoc writers with Hakyll</h1>
+        
+            
+        </div>
+
+        
+        <div class="info">
+            Posted on March 16, 2015
+            
+        </div>
+        
+
+        <div id="content">
+            <div class="collection-seek">
+
+
+
+</div>
+
+<div class="main-text">
+    <div class="sidenote"><ol start="1"><li id="sn1"><div><p>Literally two posts about math.</p></div></li><li id="sn2"><div><p>I do not.</p></div></li></ol></div><p>For the past few years, I’ve used <a href="http://octopress.org/" title>Octopress</a> to maintain a small<a id="fnref1" class="fnref" href="#fn1"><sup>1</sup></a> Github-pages blog about math. However, getting LaTeX and Markdown to coexist peacefully was a hassle that consumed a night or two, and Octopress seemed more feature-rich than I needed. So recently, I decided to switch to <a href="http://jaspervdj.be/hakyll/" title>Hakyll</a>, a static site generator written in Haskell. Hakyll is powered by <a href="http://johnmacfarlane.net/pandoc/" title>Pandoc</a>, which has an awesome Markdown parser with built-in support for math. Also I convinced myself I knew enough Haskell that it would be an easy transition<a id="fnref2" class="fnref" href="#fn2"><sup>2</sup></a>.</p>
+
+<div class="sidenote"><ol start="3"><li id="sn3"><div><p><a href="http://www.edwardtufte.com/bboard/images/0001Zi-1676.gif" title>See here</a> for an example.</p></div></li><li id="sn4"><div><p>Told you I don’t know Haskell</p></div></li></ol></div><p>I wanted to display footnotes to the right of where they are mentioned, like in Edward Tufte’s books<a id="fnref3" class="fnref" href="#fn3"><sup>3</sup></a>. Pandoc works by parsing different formats into a common format (a &ldquo;Pandoc&rdquo;), which it can then write into a number of different outputs, like HTML, Markdown, or a LaTeX document. My original plan of modifying Pandoc’s <a href="https://github.com/jgm/pandoc/blob/master/src/Text/Pandoc/Writers/HTML.hs" title>HTML writer</a> didn’t work<a id="fnref4" class="fnref" href="#fn4"><sup>4</sup></a>, but I learned that Pandoc supports <a href="http://stackoverflow.com/questions/15939425/is-it-possible-to-write-a-custom-converter-for-pandoc" title>custom writers</a> written in Lua. I managed to write a <a href="https://github.com/wetmore/personal-site/blob/master/sidenote.lua" title>lua script</a> which could output the necessary HTML for my sidenotes, but then I needed to get it working with Hakyll, which I thought would be pretty simple.</p>
+
+<div class="sidenote"><ol start="5"><li id="sn5"><div><p>Beyond &ldquo;A monad is just a monoid in the category of endofunctors&rdquo;.</p></div></li></ol></div><p>Anyway, after a wonderful week of learning how monads actually work<a id="fnref5" class="fnref" href="#fn5"><sup>5</sup></a> I managed to figure it out. So if you’d like to use a custom writer for Pandoc with Hakyll, here’s how. In <code>site.hs</code>, or whatever your main Hakyll file is, add a new function:</p>
+
+<div class="highlight"><pre><span class="nf">customWriterCompilerWith</span> <span class="ow">::</span> <span class="p">(</span><span class="kt">WriterOptions</span> <span class="ow">-&gt;</span> <span class="kt">Pandoc</span> <span class="ow">-&gt;</span> <span class="kt">IO</span> <span class="kt">String</span><span class="p">)</span>
+                         <span class="ow">-&gt;</span> <span class="kt">ReaderOptions</span> <span class="ow">-&gt;</span> <span class="kt">WriterOptions</span>
+                         <span class="ow">-&gt;</span> <span class="kt">Compiler</span> <span class="p">(</span><span class="kt">Item</span> <span class="kt">String</span><span class="p">)</span>
+<span class="nf">customWriterCompilerWith</span> <span class="n">customWriter</span> <span class="n">ropt</span> <span class="n">wopt</span> <span class="ow">=</span> <span class="kr">do</span>
+    <span class="n">pandoc</span> <span class="ow">&lt;-</span> <span class="n">readPandocWith</span> <span class="n">ropt</span> <span class="o">&lt;$&gt;</span> <span class="n">getResourceBody</span>
+    <span class="n">withItemBody</span> <span class="p">(</span><span class="n">unsafeCompiler</span> <span class="o">.</span> <span class="n">customWriter</span> <span class="n">wopt</span><span class="p">)</span> <span class="n">pandoc</span>
+</pre></div>
+
+
+<div class="sidenote"><ol start="6"><li id="sn6"><div><p>This is part of the Pandoc API; <a href="https://hackage.haskell.org/package/pandoc-1.13.2/docs/Text-Pandoc-Writers-Custom.html" title>here</a> are the docs and <a href="https://github.com/jgm/pandoc/blob/master/src/Text/Pandoc/Writers/Custom.hs" title>here</a> is where it’s defined</p></div></li></ol></div><p>This gives us a new Pandoc compiler after we pass it a custom Pandoc writer created with <code>writeCustom</code><a id="fnref6" class="fnref" href="#fn6"><sup>6</sup></a>. We can use it like so:</p>
+
+<div class="highlight"><pre><span class="nf">sidenoteCompilerWith</span> <span class="ow">::</span> <span class="kt">ReaderOptions</span> <span class="ow">-&gt;</span> <span class="kt">WriterOptions</span> <span class="ow">-&gt;</span> <span class="kt">Compiler</span> <span class="p">(</span><span class="kt">Item</span> <span class="kt">String</span><span class="p">)</span>
+<span class="nf">sidenoteCompilerWith</span> <span class="ow">=</span> <span class="n">customWriterCompilerWith</span> <span class="o">$</span> <span class="n">writeCustom</span> <span class="s">&quot;sidenote.lua&quot;</span>
+</pre></div>
+
+
+<p>Now we can use <code>sidenoteCompilerWith</code> to define a compiler we can use in our route definitions, by passing reader and writer options.</p>
+
+<h2 id="how-it-works">How it works</h2>
+
+<p>Hakyll’s <code>unsafeCompiler</code>, which is used elsewhere to allow you to use arbitrary unix programs as compilers, does the heavy lifting here, by fixing the first stumbling block when trying to use a custom writer: the other Pandoc writers Hakyll uses have type <code class="highlight"><span class="kt">WriterOptions</span> <span class="ow">-&gt;</span> <span class="kt">Pandoc</span> <span class="ow">-&gt;</span> <span class="kt">String</span>
+</code>, but check out the type for a custom writer:</p>
+
+<div class="highlight"><pre><span class="nf">writeCustom</span> <span class="s">&quot;sidenote.lua&quot;</span> <span class="ow">::</span> <span class="kt">WriterOptions</span> <span class="ow">-&gt;</span> <span class="kt">Pandoc</span> <span class="ow">-&gt;</span> <span class="kt">IO</span> <span class="kt">String</span>
+</pre></div>
+
+
+<div class="sidenote"><ol start="7"><li id="sn7"><div><p>Abstract Syntax Tree</p></div></li></ol></div><p>Since the behaviour of the writer comes from a file which Pandoc first needs to open and read, the resulting custom writer is tainted with the impurity of <code class="highlight"><span class="kt">IO</span>
+</code>. So we live dangerously and invoke the <code>unsafeCompiler</code>, of type <code class="highlight"><span class="kt">IO</span> <span class="n">a</span> <span class="ow">-&gt;</span> <span class="kt">Compiler</span> <span class="n">a</span>
+</code>, so that the composition <code>unsafeCompiler . customWriter wopt</code> takes in a <code class="highlight"><span class="kt">Pandoc</span>
+</code> (the AST<a id="fnref7" class="fnref" href="#fn7"><sup>7</sup></a> from a parsed document) and gives us back a <code class="highlight"><span class="kt">Compiler</span> <span class="kt">String</span>
+</code>. However, when Hakyll passes around data such as the Markdown file containing a post, or the resulting <code class="highlight"><span class="kt">Pandoc</span>
+</code> representation of a post, it does so with a functor <code class="highlight"><span class="kt">Item</span>
+</code>, which carries a unique identifier for the data as it changes representations. So we need to lift our function to something of type <code class="highlight"><span class="kt">Item</span> <span class="kt">Pandoc</span> <span class="ow">-&gt;</span> <span class="kt">Compiler</span> <span class="p">(</span><span class="kt">Item</span> <span class="kt">String</span><span class="p">)</span>
+</code></p>
+
+<p>The Hakyll function <code>withItemBody</code> is just the function we need for this; as you can see in the definition of <code>customWriterCompilerWith</code> above, we use this function to process the parsed <code class="highlight"><span class="kt">Item</span> <span class="kt">Pandoc</span>
+</code> we’re given and generate output from our custom writer.</p>
+
+<h2 id="acknowledgments">Acknowledgments</h2>
+
+<p>Thanks to <a href="https://twitter.com/jokeofweek" title>Dom Charley-Roy</a> for proofreading this post.</p>
+<ol class="footnotes">
+<li id="fn1"><p>Literally two posts about math. <a href="#fnref1" class="fnref">↩</a></p></li>
+<li id="fn2"><p>I do not. <a href="#fnref2" class="fnref">↩</a></p></li>
+<li id="fn3"><p><a href="http://www.edwardtufte.com/bboard/images/0001Zi-1676.gif" title>See here</a> for an example. <a href="#fnref3" class="fnref">↩</a></p></li>
+<li id="fn4"><p>Told you I don’t know Haskell <a href="#fnref4" class="fnref">↩</a></p></li>
+<li id="fn5"><p>Beyond &ldquo;A monad is just a monoid in the category of endofunctors&rdquo;. <a href="#fnref5" class="fnref">↩</a></p></li>
+<li id="fn6"><p>This is part of the Pandoc API; <a href="https://hackage.haskell.org/package/pandoc-1.13.2/docs/Text-Pandoc-Writers-Custom.html" title>here</a> are the docs and <a href="https://github.com/jgm/pandoc/blob/master/src/Text/Pandoc/Writers/Custom.hs" title>here</a> is where it’s defined <a href="#fnref6" class="fnref">↩</a></p></li>
+<li id="fn7"><p>Abstract Syntax Tree <a href="#fnref7" class="fnref">↩</a></p></li>
+</ol>
+</div>
+
+<div class="collection-seek">
+
+
+</div>
+        </div>
+
+        
+        <div class="comments">
+        <h2>Comments</h2>
+        <div id="disqus_thread"></div>
+        </div>
+        <script type="text/javascript">
+            /* * * CONFIGURATION VARIABLES * * */
+            var disqus_shortname = 'mattwetmore';
+            var disqus_identifier = '/posts/hakyll-custom-writer.html';
+            var disqus_url = 'http://mattwetmore.me' + '/posts/hakyll-custom-writer.html';
+            var disqus_title = 'Using custom Pandoc writers with Hakyll';
+            (function() {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+        
+
+        <div id="footer">
+            <span class="left"><a href="//github.com/wetmore/personal-site">Source</a>
+            on Github</span>
+
+            Site proudly generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+        <script src="../js/sidenote.js"></script>
+    </body>
+</html>

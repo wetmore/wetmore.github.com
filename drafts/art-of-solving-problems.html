@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1,user-scalable=no">
+        <title>The art of solving problems</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/github.css" />
+        <link rel="stylesheet" type="text/css" href="../css/old.css" />
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+          ga('create', 'UA-60895827-1', 'auto');
+          ga('send', 'pageview');
+
+        </script>
+        <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script src="../js/mathjaxConfig.js"></script>
+        
+        
+        
+        
+        
+        
+        <link rel="apple-touch-icon-precomposed" sizes="57x57" href="../images/favicon/apple-touch-icon-57x57.png" />
+<link rel="apple-touch-icon-precomposed" sizes="114x114" href="../images/favicon/apple-touch-icon-114x114.png" />
+<link rel="apple-touch-icon-precomposed" sizes="72x72" href="../images/favicon/apple-touch-icon-72x72.png" />
+<link rel="apple-touch-icon-precomposed" sizes="144x144" href="../images/favicon/apple-touch-icon-144x144.png" />
+<link rel="apple-touch-icon-precomposed" sizes="120x120" href="../images/favicon/apple-touch-icon-120x120.png" />
+<link rel="apple-touch-icon-precomposed" sizes="152x152" href="../images/favicon/apple-touch-icon-152x152.png" />
+<link rel="icon" type="image/png" href="../images/favicon/favicon-32x32.png" sizes="32x32" />
+<link rel="icon" type="image/png" href="../images/favicon/favicon-16x16.png" sizes="16x16" />
+<meta name="application-name" content="&nbsp;" />
+<meta name="msapplication-TileColor" content="#FFFFFF" />
+<meta name="msapplication-TileImage" content="/images/favicon/mstile-144x144.png" />
+
+    </head>
+    <body>
+
+        <header>
+            <div class="title">Matt Wetmore</div>
+            <div class="navi">
+                <a href="../">Home</a>
+                <a href="../about.html">About</a>
+                <a href="../cv.pdf">CV</a>
+                <a href="../projects.html">Projects</a>
+                <a href="../archive.html">Archive</a>
+            </div>
+            <a href="../where.html"><div class="bird"></div></a>
+        </header>
+
+        <div class="title">
+            <h1>The art of solving problems</h1>
+        
+            
+        </div>
+
+        
+        <div class="info">
+            Posted on 2013-04-29 14:41
+            
+        </div>
+        
+
+        <div id="content">
+            <div class="draft-notice">This post is currently a draft, and does not show up in the archive</div>
+
+<div class="collection-seek">
+
+
+
+</div>
+
+<div class="main-text">
+    <p>Every so often one comes across a good problem. A problem that makes you think, and encourages you to learn more than necessary to solve it, just because it’s that beautiful. In the words of mathematician/teacher <a href="http://www.maa.org/devlin/lockhartslament.pdf" title>Paul Lockhart</a>, &ldquo;a good problem is something you don’t know <em>how</em> to solve. That’s what makes it a good puzzle, and a good opportunity. A good problem does not just sit there in isolation, but serves as a springboard to <em>other</em> interesting questions.&rdquo; Studying math can be interesting enough, but it’s the good problems that actually give you a reason to do so.</p>
+
+<div class="highlight"><pre><span class="nf">primes</span> <span class="ow">=</span> <span class="n">sieve</span> <span class="p">[</span><span class="mi">2</span><span class="o">..</span><span class="p">]</span> 
+  <span class="kr">where</span> <span class="n">sieve</span> <span class="p">(</span><span class="n">p</span><span class="kt">:</span><span class="n">xs</span><span class="p">)</span> <span class="ow">=</span> 
+    <span class="n">p</span> <span class="kt">:</span> <span class="n">sieve</span> <span class="p">[</span><span class="n">x</span> <span class="o">|</span> <span class="n">x</span> <span class="ow">&lt;-</span> <span class="n">xs</span><span class="p">,</span> <span class="n">x</span> <span class="p">`</span><span class="n">mod</span><span class="p">`</span> <span class="n">p</span> <span class="o">/=</span> <span class="mi">0</span><span class="p">]</span>
+</pre></div>
+
+
+<p>Naturally this implies that if you really want to improve, or the idea of math being - dare I say it - fun appeals to you, you should seek out the good problems. This may seem like bad news: if your ability to grow is so contingent on these problems, doesn’t this mean there is the extra challenge of actually <em>finding</em> these problems in the first place? Fortunately, you don’t need to find all good problems - in many cases, you can make them good yourself. And as you learn more, more problems will draw you in. This might be a bit confusing at first, so I’m going to work through a problem that I consider &ldquo;good&rdquo;.</p>
+
+<p>The problem, as given, is to prove the following identity using induction:</p>
+
+<p>\[ 1^3 + 2^3 + 3^3 + \ldots + n^3 = \frac{n^2(n+1)^2}{4} \]</p>
+
+<!-- more -->
+
+<p>On first glance this probably doesn’t seem like a &ldquo;good&rdquo; problem - all we’re doing here is proving something with induction, and just by looking at it you can probably guess that the technique won’t even be very interesting. After all, whenever induction is taught, the canonical example (which I’ll henceforth refer to as the <a href="http://mathandmultimedia.com/2010/09/15/sum-first-n-positive-integers/" title>Young Gauss identity</a>) is to prove that</p>
+
+<p>\[ 1 + 2 + 3 + \ldots + n = \frac{n(n+1)}{2} \]</p>
+
+<p>So once you’ve learned the technique behind that, solving the problem posed is carried out in the same way. Certainly this problem will help you practice induction, but does that make it a truly good problem? After all, you’re not learning anything <em>new</em>.</p>
+
+<p>But let’s look at the problem again. Notice that the right hand side is the same as the right hand side of the Young Gauss identity, only squared. That’s interesting, isn’t it? This is pretty much the crux of math - noticing similarities and patterns, recognizing things you’ve seen before. If that seems hard, don’t worry - it gets easier the more you do math. For example, you should try to remember that when you’re adding the integers from 1 to \(n\), the sum is equal to the right hand side of the Young Gauss identity - it comes up a lot. But after using it a few times, it will be in your head.</p>
+
+<p>When something like this happens, it’s often not a coincidence. There’s gotta be some interesting reason behind the fact that when you sum the cubes of integers up to \(n\), you end up with the square of the sum of integers themselves. It’s not immediately obvious, so it’s definitely worth our attention. This is what makes it a good problem - we don’t know how to solve it; we can’t just apply some algorithm we’ve learned. It takes some insight, and that’s where the fun is!</p>
+
+<p>Okay so since we know:</p>
+
+<p>\[ 1 + 2 + 3 + \ldots + n = \frac{n(n+1)}{2} \]</p>
+
+<p>we know that we can rewrite our problem as</p>
+
+<p>\[
+1^3 + 2^3 + 3^3 + \ldots + n^3 = \frac{n^2(n+1)^2}{4}
+= \left(\frac{n(n+1)}{2}\right)^2
+= (1 + 2 + 3 + \ldots + n)^2
+\]</p>
+
+<p>Now let’s look at what expanding the right side would look like. A good strategy here is to use a smaller, less general number than just \(n\) - let’s use \(n = 3\) and expand \((1 + 2 + 3)^2\). We get \(1 + 2 + 3 + 2 + 4 + 6 + 3 + 6 + 9\). This adds up to \(1^3 + 2^3 + 3^3\), like required, but we’re still not seeing anything interesting.</p>
+
+<p>Remember, at this point we’re looking for some &ldquo;natural&rdquo; way to see that this sum is equal to \(1^3 + 2^3 + 3^3\). We’ll know it when we see it - it’s the moment when everything just clicks in your head. We have 9 terms, and we want some way to group the terms so each grouping represents one of the cubes in \(1^3 + 2^3 + 3^3\). Keeping this in mind, we experiment with different ways of viewing the numbers.</p>
+
+<p>After a bit of messing around we think &ldquo;what happens if we represent the expansion of \((1 + 2 + 3)^2\) in a sort of table?&rdquo; That is, we write out the terms in the following \(3 \times 3\) table:</p>
+
+<p>\[
+\begin{matrix}
+  &amp; 1 &amp; + &amp; 2 &amp; + &amp; 3 \\\\
++ &amp; 2 &amp; + &amp; 4 &amp; + &amp; 6 \\\\
++ &amp; 3 &amp; + &amp; 6 &amp; + &amp; 9
+\end{matrix}
+\]</p>
+
+<p>There is some sort of pattern here, <strong>and patterns are a good sign that we are on the right track</strong>. Let’s take this representation a bit further: let’s express the numbers in the grid by the multiplications as we obtained them when expanding \((1 + 2 + 3)^2\). That is:</p>
+
+<p>\[
+\begin{matrix}
+  &amp; 1 \cdot 1 &amp; + &amp; 1 \cdot 2 &amp; + &amp; 1 \cdot 3 \\\\
++ &amp; 2 \cdot 1 &amp; + &amp; 2 \cdot 2 &amp; + &amp; 2 \cdot 3  \\\\
++ &amp; 3 \cdot 1 &amp; + &amp; 3 \cdot 2 &amp; + &amp; 3 \cdot 3
+\end{matrix}
+\]</p>
+
+<p>When we simply wrote out the products, instead of their factors, we lost some information about the numbers we were working with - and this means we possibly miss out on some information that will help us solve our problem. This is the motivation behind writing out factors, but you might be wondering &ldquo;how do I know to do this?&rdquo; In general it’s a good idea to preserve information between steps when doing combinatorial work. Knowing when to apply concepts like this comes with practice. The more problems you do, the more problem-solving tools you pick up.</p>
+
+<p>Now we’re in the home stretch. The pattern in this table that leads us to our final insight is visible - if you don’t see it yet, let me swap the order of some of the factors like so:</p>
+
+<p>\[
+\begin{matrix}
+  &amp; \mathbf 1 \cdot 1 &amp; + &amp; \mathbf 2 \cdot 1 &amp; + &amp; \mathbf 3 \cdot 1 \\\\
++ &amp; \mathbf 2 \cdot 1 &amp; + &amp; \mathbf 2 \cdot 2 &amp; + &amp; \mathbf 3 \cdot 2  \\\\
++ &amp; \mathbf 3 \cdot 1 &amp; + &amp; \mathbf 3 \cdot 2 &amp; + &amp; \mathbf 3 \cdot 3
+\end{matrix}
+\]</p>
+
+<p>Do you see it now? Look at the top left entry - \(1 \cdot 1\) - and picture it as some origin. Now picture waves radiating down and to the right from this origin, like ripples from a pebble dropped in water. The first wave contains the terms where the first factor is 2 (well, after I rearranged them as such). The second contains the terms with a leading factor of 3. This picture shows what I mean:</p>
+
+<div class="captioned-image"><img src="http://i.imgur.com/kizKtBc.png" alt="test"><p class="caption">fig:lol</p></div>
+
+<p>Since all terms in some &ldquo;wave&rdquo; contain a common factor, we can use distributivity to rewrite the terms - for example, for the terms in the second wave:</p>
+
+<p>\[
+3 \cdot 1 + 3 \cdot 2 + 3 \cdot 3 + 3 \cdot 2 + 3 \cdot 1 =
+3 \cdot (1 + 2 + 3 + 2 + 1)
+\]</p>
+
+<p>Which means we can write the entire sum in the table (and thus, the value for \(1^3 + 2^3 + 3^3\)) as:</p>
+
+<p>\[ 1^3 + 2^3 + 3^3 = 1 \cdot 1 + 2 \cdot (1 + 2 + 1) + 3 \cdot (1 + 2 + 3 + 2 + 1) \]</p>
+
+<p>which is just <em>awesome</em> because of the pattern that emerged. I think it’s pretty beautiful to be honest, and it represents a solid step in the right direction. Remember, earlier I said that our goal was to find some grouping of the terms in the expansion of \((1 + 2 + 3)^2\) such that each group of terms represented one of the cubes in \(1^3 + 2^3 + 3^3\), and this step all but hands us that grouping. The only final step is to show that a term like \(2 \cdot (1 + 2 + 1) = 2^3\), and this is a fun one.</p>
+
+<p>Remember the Young Gauss identity I mentioned earlier? How the sum of integers from 1 to \(n\) equals \(n(n+1)/2\)? Well the sum you get for each value of \(n\) is something called a <em>triangle number</em>. The first triangle number \(T_1\) is just 1, the second \(T_2 = 1 + 2 = 3\), and \(T_3 = 1 + 2 + 3 = 6\), and so on. The following picture should explain where they get their name.</p>
+
+<div class="captioned-image"><img src="http://i.imgur.com/oCmBm9h.png" alt><p class="caption">fig:</p></div>
+
+<p>Looking at a term like \(3 \cdot (1 + 2 + 3 + 2 + 1)\), we see that the sum in the parentheses is just two triangle numbers - we have \(1 + 2 + 3 = T_3\), and \(1 + 2 = T_2 = T_{3-1}\). The same is true for the term \(2 \cdot (1 + 2 + 1)\) - in the parentheses we have \(T_2 + T_1\). What happens when we add two triangle numbers \(T_n + T_{n-1}\)? Well, what happens when we put two triangles together, geometrically? We get a square! In fact, \(T_n + T_{n-1} = n^2\). You can work this out algebraically with the definition \(T_n = n(n+1)/2\), but I think a more intuitive reason is given in the following picture:</p>
+
+<div class="captioned-image"><img src="http://i.imgur.com/Vs5rVpg.png" alt><p class="caption">fig:</p></div>
+
+<p>So:</p>
+
+<p>\[
+\begin{align}
+1^3 + 2^3 + 3^3 &amp;= 1 \cdot 1 + 2 \cdot (1 + 2 + 1) + 3 \cdot (1 + 2 + 3 + 2 + 1) \\\\
+&amp;= 1 \cdot (T_1 + T_0) + 2 \cdot (T_2 + T_1) + 3 \cdot (T_3 + T_2) \\\\
+&amp;= 1 \cdot (1^2) + 2 \cdot (2^2) + 3 \cdot (3^2) \\\\
+&amp; =1^3 + 2^3 + 3^3
+\end{align}
+\]</p>
+
+<p>And that’s it! Our sequence of steps worked, and we’ve not only shown that \(1^3 + 2^3 + 3^3 = 3^2(3+1)^2/4\), we’ve also found the algebraic manipulations necessary to get there, and gained some intuition for <em>why</em> the relation is true. Of course, this is just showing reasoning for \(n = 3\), but all of our steps are easily extended to work for any choice of \(n\).</p>
+
+<p>I really want to stress that when I was trying to solve this problem, these steps didn’t come to be instantly. Hopefully when I explain them, each step follows naturally from the previous one, but don’t take this to mean that figuring them out was as simple for me. If you didn’t see these patterns immediately, don’t worry - I didn’t either, and just because I saw them eventually doesn’t mean I’m smarter than you. It just comes with practice. My hope is that working through this problem shows the true beauty of math, and encourages you to seek out such beauty yourself. If you’re interested in taking a different path for this proof, consider the following fact:</p>
+
+<p>\[ 1 + 3 + 5 + \ldots + (2n - 1) = n^2 \]</p>
+
+<p>You can make use of this to prove our original equation as well.</p>
+
+<p>After writing this I learned that our particular problem/identity is also known as <a href="http://en.wikipedia.org/wiki/Squared_triangular_number" title>Nicomachus’s Theorem</a> and has a number of cool proofs associated with it.</p>
+</div>
+
+<div class="collection-seek">
+
+
+</div>
+        </div>
+
+        
+        <div class="comments">
+        <h2>Comments</h2>
+        <div id="disqus_thread"></div>
+        </div>
+        <script type="text/javascript">
+            /* * * CONFIGURATION VARIABLES * * */
+            var disqus_shortname = 'mattwetmore';
+            var disqus_identifier = '/drafts/art-of-solving-problems.html';
+            var disqus_url = 'http://mattwetmore.me' + '/drafts/art-of-solving-problems.html';
+            var disqus_title = 'The art of solving problems';
+            (function() {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+        
+
+        <div id="footer">
+            <span class="left"><a href="//github.com/wetmore/personal-site">Source</a>
+            on Github</span>
+
+            Site proudly generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+        <script src="../js/sidenote.js"></script>
+    </body>
+</html>

@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1,user-scalable=no">
+        <title>Coalgebraic semantics for modal logics: predicate lifting</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/github.css" />
+        <link rel="stylesheet" type="text/css" href="../css/old.css" />
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+          ga('create', 'UA-60895827-1', 'auto');
+          ga('send', 'pageview');
+
+        </script>
+        <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script src="../js/mathjaxConfig.js"></script>
+        
+        
+        
+        
+        
+        
+        <link rel="apple-touch-icon-precomposed" sizes="57x57" href="../images/favicon/apple-touch-icon-57x57.png" />
+<link rel="apple-touch-icon-precomposed" sizes="114x114" href="../images/favicon/apple-touch-icon-114x114.png" />
+<link rel="apple-touch-icon-precomposed" sizes="72x72" href="../images/favicon/apple-touch-icon-72x72.png" />
+<link rel="apple-touch-icon-precomposed" sizes="144x144" href="../images/favicon/apple-touch-icon-144x144.png" />
+<link rel="apple-touch-icon-precomposed" sizes="120x120" href="../images/favicon/apple-touch-icon-120x120.png" />
+<link rel="apple-touch-icon-precomposed" sizes="152x152" href="../images/favicon/apple-touch-icon-152x152.png" />
+<link rel="icon" type="image/png" href="../images/favicon/favicon-32x32.png" sizes="32x32" />
+<link rel="icon" type="image/png" href="../images/favicon/favicon-16x16.png" sizes="16x16" />
+<meta name="application-name" content="&nbsp;" />
+<meta name="msapplication-TileColor" content="#FFFFFF" />
+<meta name="msapplication-TileImage" content="/images/favicon/mstile-144x144.png" />
+
+    </head>
+    <body>
+
+        <header>
+            <div class="title">Matt Wetmore</div>
+            <div class="navi">
+                <a href="../">Home</a>
+                <a href="../about.html">About</a>
+                <a href="../cv.pdf">CV</a>
+                <a href="../projects.html">Projects</a>
+                <a href="../archive.html">Archive</a>
+            </div>
+            <a href="../where.html"><div class="bird"></div></a>
+        </header>
+
+        <div class="title">
+            <h1>Coalgebraic semantics for modal logics: predicate lifting</h1>
+        
+            
+        </div>
+
+        
+        <div class="info">
+            Posted on 2015-03-14 14:41
+            
+        </div>
+        
+
+        <div id="content">
+            <div class="draft-notice">This post is currently a draft, and does not show up in the archive</div>
+
+<div class="collection-seek">
+
+    <h5>Part 2 in the collection Semantics of modal logic</h5>
+
+
+
+</div>
+
+<div class="main-text">
+    <p>\(\newcommand{\sem}[1]{[\![ #1 ]\!]}\)</p>
+
+<p>Predicate lifting is one approach to a general coalgebraic framework for providing semantics for different modal logics.</p>
+
+<h2 id="coalgebras">Coalgebras</h2>
+
+<p>Given a functor \(F : C \to C\), an \(F\)-coalgebra is an object \(X \in C\) and a morphism \(\gamma : X \to F X\). So we can specify it by a pair \((X, \gamma)\), and we’ll call \(\gamma\) the structure map. Given two \(F\)-coalgebras \((X, \gamma)\) and \((Y, \delta)\), a morphism \(h : X \to Y\) in \(C\) is a \(F\)-coalgebra homomorphism if \(F h \circ \gamma = \delta \circ h\), i.e. the following diagram commutes:</p>
+
+<p>[Diagram here]</p>
+
+<p>For a given functor \(F : C \to C\), we can form the category of \(F\)-coalgbras and the homomorphisms between them, called \(\text{Coalg}(F)\). For brevity’s sake, we’ll drop the \(F\)-, and just call them coalgebras. We will be working with coalgebras defined by functors in the category of sets, and they will represent the structure of transitions, so we will denote them with a \(T : \mathsf{Set} \to \mathsf{Set}\).</p>
+
+<p>In a transition system over a set of states \(W\), we describe transitions from one state to another by a transition function \(\gamma : W \to \ldots\), where the right of the arrow depends on what sort of system it is. For deterministic transition systems, \(\gamma : W \to W\), where each state only transitions to a unque next state. If it’s a labeled transition system with labels in a set \(A\), then \(\gamma : W \to W^A\), where \(W^A\) is the set of functions from \(A \to W\). For nondeterministic LTS’s, it’s \(\gamma : W \to \mathcal{P}(W)^A\).</p>
+
+<p>There is a pattern in each choice of codomain: it always contains \(W\). And of course it must; we’re transitioning to a new state. Each can be described with a different set functor \(T\): the first is just the identity functor, the next is the exponential \(T = (-)^A\), and the last is \(T = \mathcal{P}(-)^A = (-)^A \circ \mathcal{P}\).</p>
+
+<p>Since coalgebras are so well-suited for transition systems, it makes sense that we look to them to encode the semantics of modal logics, which have been such a rich object of study because of their own application to transition systems. Our goal will be to develop a theory of modal logic parametric only in a given set functor \(T\), i.e. parametric in the type of the transition system, and not in a particular logic.</p>
+
+<p>The approach of predicate lifting does not really meet these goals as we will see, but it still provides a tantalizing look into modal logic through a categorical lens.</p>
+
+<h2 id="predicate-lifting">Predicate lifting</h2>
+
+<div class="sidenote"><ol start="1"><li id="sn1"><div><p>Number of inputs.</p></div></li><li id="sn2"><div><p>Explain \(K\) in the previou article</p></div></li></ol></div><p>Recall from Part I that a <em>modal similarity type</em> \(\Lambda\) is a pair \((\mathcal O, \rho)\), where \(\mathcal O\) is a set of modal operators and \(\rho : \mathcal O \to \mathbb N\) assigns arities<a id="fnref1" class="fnref" href="#fn1"><sup>1</sup></a> to them. For the modal logic \(K\)<a id="fnref2" class="fnref" href="#fn2"><sup>2</sup></a>, for example, \(\Lambda = (\{\square\}, \rho)\) where \(\rho(\square) = 1\). For the most part, we’ll leave the arities implicit and use \(\Lambda\) to refer to the set of operators.</p>
+
+<p>Given a similarity type \(\Lambda\), a \(\Lambda\)-structure is a pair \((T, \{\sem{\triangle}\}_{\triangle \in \Lambda})\), where \[
+\sem{\triangle}_{(-)} : (2^{(-)})^{\rho(\triangle)} \to 2^{(-)} \circ T
+\] is a natural transformation which describes the semantic behaviour of the operator \(\triangle\). This is something we need to specify, but when we’ve defined \(\sem{\triangle}\) for each \(\triangle \in \Lambda\), we will be able to define the semantics of the logic described by \(\Lambda\) for any \(T\)-coalgebra \((W,\gamma)\).</p>
+<ol class="footnotes">
+<li id="fn1"><p>Number of inputs. <a href="#fnref1" class="fnref">↩</a></p></li>
+<li id="fn2"><p>Explain \(K\) in the previou article <a href="#fnref2" class="fnref">↩</a></p></li>
+</ol>
+</div>
+
+<div class="collection-seek">
+
+
+</div>
+        </div>
+
+        
+
+        <div id="footer">
+            <span class="left"><a href="//github.com/wetmore/personal-site">Source</a>
+            on Github</span>
+
+            Site proudly generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+        <script src="../js/sidenote.js"></script>
+    </body>
+</html>

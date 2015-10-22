@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1,user-scalable=no">
+        <title>My workflow for this blog</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/github.css" />
+        <link rel="stylesheet" type="text/css" href="../css/old.css" />
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+          ga('create', 'UA-60895827-1', 'auto');
+          ga('send', 'pageview');
+
+        </script>
+        <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script src="../js/mathjaxConfig.js"></script>
+        
+        
+        
+        
+        
+        
+        <link rel="apple-touch-icon-precomposed" sizes="57x57" href="../images/favicon/apple-touch-icon-57x57.png" />
+<link rel="apple-touch-icon-precomposed" sizes="114x114" href="../images/favicon/apple-touch-icon-114x114.png" />
+<link rel="apple-touch-icon-precomposed" sizes="72x72" href="../images/favicon/apple-touch-icon-72x72.png" />
+<link rel="apple-touch-icon-precomposed" sizes="144x144" href="../images/favicon/apple-touch-icon-144x144.png" />
+<link rel="apple-touch-icon-precomposed" sizes="120x120" href="../images/favicon/apple-touch-icon-120x120.png" />
+<link rel="apple-touch-icon-precomposed" sizes="152x152" href="../images/favicon/apple-touch-icon-152x152.png" />
+<link rel="icon" type="image/png" href="../images/favicon/favicon-32x32.png" sizes="32x32" />
+<link rel="icon" type="image/png" href="../images/favicon/favicon-16x16.png" sizes="16x16" />
+<meta name="application-name" content="&nbsp;" />
+<meta name="msapplication-TileColor" content="#FFFFFF" />
+<meta name="msapplication-TileImage" content="/images/favicon/mstile-144x144.png" />
+
+    </head>
+    <body>
+
+        <header>
+            <div class="title">Matt Wetmore</div>
+            <div class="navi">
+                <a href="../">Home</a>
+                <a href="../about.html">About</a>
+                <a href="../cv.pdf">CV</a>
+                <a href="../projects.html">Projects</a>
+                <a href="../archive.html">Archive</a>
+            </div>
+            <a href="../where.html"><div class="bird"></div></a>
+        </header>
+
+        <div class="title">
+            <h1>My workflow for this blog</h1>
+        
+            
+        </div>
+
+        
+
+        <div id="content">
+            <div class="draft-notice">This post is currently a draft, and does not show up in the archive</div>
+
+<div class="collection-seek">
+
+
+
+</div>
+
+<div class="main-text">
+    <div class="sidenote"><ol start="1"><li id="sn1"><div><p>Pandoc’s Markdown parser is one of the most powerful out there, and supports many different extensions.</p></div></li></ol></div><p>This website is built with <a href="http://jaspervdj.be/hakyll/" title>Hakyll</a>, a static site generator written in Haskell. Hakyll is powered by <a href="http://johnmacfarlane.net/pandoc/" title>Pandoc</a>, which can convert content between a variety of different formats. In particular, Pandoc can convert Markdown<a id="fnref1" class="fnref" href="#fn1"><sup>1</sup></a> with LaTeX math into HTML. This means I can write my blog posts in Markdown with math included without much of a hassle.</p>
+
+<div class="sidenote"><ol start="2"><li id="sn2"><div><p>Domain-Specific Language</p></div></li></ol></div><p>The file <a href title><code>site.hs</code></a> is the main specification of how the site is built. Hakyll provides a nice DSL<a id="fnref2" class="fnref" href="#fn2"><sup>2</sup></a> for describing how to process the posts and other content into a bunch of HTML and CSS files the site consists of. We can compile <code>site.hs</code> with <code>ghc --make site.hs</code> and use it for a number of different commands:</p>
+
+<ul>
+<li><code>/site build</code>: Build the static site into the folder <code>_site</code>.</li>
+<li><code>/site clean</code>: Clear the site cache and delete <code>_site</code>.</li>
+<li><code>/site rebuild</code>: Runs <code>clean</code>, then <code>build</code>.</li>
+<li><code>/site preview</code>: Serve the site on <code>localhost:8000</code> and rebuild when files change.</li>
+</ul>
+<ol class="footnotes">
+<li id="fn1"><p>Pandoc’s Markdown parser is one of the most powerful out there, and supports many different extensions. <a href="#fnref1" class="fnref">↩</a></p></li>
+<li id="fn2"><p>Domain-Specific Language <a href="#fnref2" class="fnref">↩</a></p></li>
+</ol>
+</div>
+
+<div class="collection-seek">
+
+
+</div>
+        </div>
+
+        
+
+        <div id="footer">
+            <span class="left"><a href="//github.com/wetmore/personal-site">Source</a>
+            on Github</span>
+
+            Site proudly generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+        <script src="../js/sidenote.js"></script>
+    </body>
+</html>
